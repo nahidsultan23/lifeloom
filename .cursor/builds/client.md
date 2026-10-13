@@ -131,7 +131,11 @@ Enforce these in the UI so people get immediate feedback. The server still rejec
 | Memory or timeline record | 5 | 3 |
 | What-if path | 3 | 0 |
 
-Images may be JPEG, PNG, or WebP. Audio may be MPEG, MP4, or WebM, up to 15 MB. The server compresses large photos. The client may downscale before upload to save the user's bandwidth, but that step is not the security or storage guarantee. Show upload progress, retry, and the server's rejection when a cap is hit. Do not keep a local temporary file after the upload attempt finishes.
+Images may be JPEG, PNG, or WebP. Audio may be MPEG, MP4, or WebM, up to 15 MB. Required frame: avatar `1:1`, letter, memory, and what-if photos `4:3`.
+
+Before the upload is sent, show the framed photo and the required ratio, for example "Required ratio 4:3". Fit the whole photo inside that frame without cropping or changing its ratio. Scale uniformly to the edge that fits, width or height. Fill the leftover space with `#F6F1E7`, split equally on both sides. The user can cancel and choose another photo. Cancel sends nothing.
+
+The server stores that same framing and compresses the file. The client preview does not replace that. Show upload progress, retry, and the server's rejection when a cap is hit. Do not keep a local temporary file after the upload attempt finishes.
 
 ## Auth
 

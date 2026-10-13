@@ -103,7 +103,9 @@ Do not accept client-supplied object keys, MIME types, ownership, platform store
 
 - Images: `image/jpeg`, `image/png`, `image/webp`. Detect type from the file, not the extension or client MIME alone.
 - Audio: `audio/mpeg`, `audio/mp4`, `audio/webm`. Max 15 MB each.
-- If the longest edge is over 1,920 px or the file is over 1.5 MB, resize the longest edge to 1,920 and encode WebP at quality 80. Skip another lossy pass when the file is already small enough and an allowed type.
+- Required frame, longest edge at most 1,920 px: avatar `1:1`, letter, memory, and what-if photos `4:3`.
+- Fit the whole photo inside that frame. Do not crop it, and do not change its own ratio. Scale uniformly to the edge that fits, width or height, including scaling up when the photo is smaller. Center it. Fill the leftover space on the other edge with `#F6F1E7`, split equally on both sides.
+- Encode the framed image as WebP at quality 80. Re-encode when the ratio does not match even if the file is already small. Skip another lossy pass only when the photo already matches the frame and is within the size limit.
 - Compression must stay suitable for a phone screen. Do not keep original multi-megabyte camera files in S3.
 - A replaced, deleted, unattached, or no-longer-referenced object is deleted from S3. Temporary upload files are deleted when the operation ends, including on failure. Unattached uploads expire after 24 hours.
 - Account or parent-record deletion deletes the related objects, sessions, and queued jobs, within the documented backup-retention limit.
@@ -342,7 +344,7 @@ Tests use a temporary in-memory MongoDB created when the run starts and destroye
 
 - Jest for unit tests. Supertest plus Jest for API e2e.
 - Contract checks for the success and error envelopes and for Swagger.
-- Cover date and age rules, state transitions, reminder defaults and overrides, SemVer, validation limits, cross-user denial, bad Google tokens, overdue goals, late completion, letter recipient lock, photo caps, compression of a large image, deletion of temporary and replaced objects, job retry without duplicate sends, update enforcement, Swagger hidden in production, and config failing closed on missing secrets.
+- Cover date and age rules, state transitions, reminder defaults and overrides, SemVer, validation limits, cross-user denial, bad Google tokens, overdue goals, late completion, letter recipient lock, photo caps, compression of a large image, equal padding when a photo ratio does not match, deletion of temporary and replaced objects, job retry without duplicate sends, update enforcement, Swagger hidden in production, and config failing closed on missing secrets.
 - Coverage guidance is about 70–80% on meaningful branches, not a vanity percentage.
 - Do not claim tests passed unless they were run.
 

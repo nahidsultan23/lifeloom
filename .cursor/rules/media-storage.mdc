@@ -1,5 +1,5 @@
 ---
-description: Compress large photos on the server and delete unused stored files.
+description: Fit photos to the required ratio, compress them on the server, and delete unused files.
 alwaysApply: true
 ---
 
@@ -11,3 +11,13 @@ The server compresses a photo when it is large. Keep enough quality for the inte
 - Delete objects that are unused, deleted, replaced, uploaded but never attached, or no longer referenced.
 - Delete temporary files when the operation finishes, including when it fails.
 - Keep objects private. Issue access only to the owner, for a short time.
+
+## Aspect ratio
+
+Each photo slot has a required ratio. If an upload does not match it, fit the whole photo inside that frame. Do not crop it, and do not change its own ratio.
+
+- Compare the photo with the frame. Scale uniformly to the edge that fits, width or height, including scaling up when the photo is smaller.
+- Fill the leftover space on the other edge with one shared background color that matches the app surface.
+- Split that empty space equally on both sides of the photo.
+- Before the upload is sent, the client shows this framed result and states the required ratio. The user can cancel and choose another photo.
+- The server stores that same framing. A client preview does not replace the stored file.
