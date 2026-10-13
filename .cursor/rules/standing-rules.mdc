@@ -1,0 +1,22 @@
+---
+description: Standing project rules. Apply to every task unless the user explicitly drops one.
+alwaysApply: true
+---
+
+# Standing rules
+
+These rules apply to every task in this repo. Follow them even when the user does not repeat them. Drop a rule only when the user explicitly says to drop it.
+
+## Before you implement
+
+1. Treat the files in `.cursor/rules/` as the project brief. Cursor injects `alwaysApply` rules into context, so do not re-read them from disk unless you are editing them.
+2. Do not scan the repository to rediscover conventions already stated in these rules.
+3. Open only the files the current task needs. Search by name or symbol before listing directories.
+4. If a convention is missing here, learn it from the files the task touches. Do not widen the search to the rest of the repo.
+
+## How new rules are stored
+
+- One concern per file, under `.cursor/rules/`, as `.mdc`.
+- Rules for every task: `alwaysApply: true`, no globs, kept short.
+- Rules for some files only: `alwaysApply: false` plus a `globs` pattern, so they load only when those files are in play.
+- Add a new short rule instead of growing this file. Keep each rule under 50 lines.
