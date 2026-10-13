@@ -101,6 +101,7 @@ export const t = {
     consentRequiredHint: 'Turn on the agreement above to continue.',
     legalPending: 'Policy links appear here once they are published.',
     signIn: 'Continue with Google',
+    previewSignIn: 'Continue as test@gmail.com',
     privacyPolicy: 'Privacy policy',
     terms: 'Terms of use',
   },

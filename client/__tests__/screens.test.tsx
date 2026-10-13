@@ -22,6 +22,7 @@ const mockAuth: Record<string, unknown> = {
   profile: { birthDate: '1994-06-21', email: 'me@example.com', displayName: 'Sam' },
   sessionNotice: undefined,
   signIn: jest.fn(),
+  previewSignIn: jest.fn(),
 };
 
 jest.mock('../src/state/AuthContext', () => ({ useAuth: () => mockAuth }));
@@ -147,6 +148,17 @@ describe('welcome screen', () => {
       await fireEvent.press(screen.getByLabelText('Continue with Google'));
     });
     expect(mockAuth.signIn).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers the test account in a development build', async () => {
+    mockAuth.previewSignIn = jest.fn().mockResolvedValue({ ok: true });
+    await render(<WelcomeScreen />);
+    await fireEvent(screen.getByLabelText('I understand how Lifeloom uses my data'), 'valueChange', true);
+    await act(async () => {
+      await fireEvent.press(screen.getByLabelText('Continue as test@gmail.com'));
+    });
+    expect(mockAuth.previewSignIn).toHaveBeenCalledTimes(1);
+    expect(mockAuth.signIn).not.toHaveBeenCalled();
   });
 
   it('shows why a session ended and shows a sign-in failure, and has no ad', async () => {

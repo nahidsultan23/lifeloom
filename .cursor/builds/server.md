@@ -62,6 +62,7 @@ DTOs validate input. Business logic stays in services. Auth and ownership checks
 
 - The app sends a Google ID token. Verify signature, issuer, expiration, and audience with a trusted library.
 - Never accept a client user id or email as identity. Never handle the Google password.
+- Development, staging, and test may offer `POST /auth/preview`. It takes an empty body, signs in the fixed account `test@gmail.com`, and seeds sample records once. Production returns 404. The route is omitted from the API document.
 - Issue Lifeloom access and refresh sessions. Support logout, revocation, and refresh rotation or equivalent replay protection.
 - Do not merge accounts because an unverified email string matches.
 - Future-self email goes only to the verified account email.

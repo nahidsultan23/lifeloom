@@ -141,6 +141,8 @@ The server stores that same framing and compresses the file. The client preview 
 
 Official Google Sign-In for the chosen React Native setup. Separate Android and iOS client ids in the config module. Send the Google ID token to the server. Do not treat client claims as proof. Never ask for the Google password. Store Lifeloom session tokens in platform secure storage, not plain AsyncStorage. Test success, cancel, invalid token, network failure, expired session, and logout on both platforms.
 
+Development and staging builds also show "Continue as test@gmail.com". That calls `POST /auth/preview` with an empty body. The production build does not show it.
+
 ## Time and notifications
 
 Show times in the app's local timezone. Send that IANA zone to the server so a later device still has it. Date-only deadlines display as calendar dates and must not shift a day. Age and leap-day math follows the API. Use one tested date helper.

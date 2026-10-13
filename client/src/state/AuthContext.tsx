@@ -29,6 +29,8 @@ interface AuthValue {
   /** Shown once on the welcome screen after a session ends on its own. */
   sessionNotice: string | undefined;
   signIn(): Promise<SignInResult>;
+  /** Development and staging only. The production server has no such route. */
+  previewSignIn(): Promise<SignInResult>;
   signOut(): Promise<void>;
   reloadProfile(): Promise<void>;
   setProfile(profile: Profile): void;
@@ -137,6 +139,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [afterSignIn]);
 
+  const previewSignIn = useCallback(async (): Promise<SignInResult> => {
+    try {
+      const result = await api.auth.preview();
+      await saveTokens({
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      });
+      setSessionNotice(undefined);
+      await afterSignIn();
+      return { ok: true };
+    } catch (error) {
+      await clearTokens();
+      const message = error instanceof ApiError ? error.message : t.errors.generic;
+      return { ok: false, cancelled: false, message };
+    }
+  }, [afterSignIn]);
+
   const endSession = useCallback(async () => {
     await signOutOfGoogle();
     await clearTokens();
@@ -166,12 +185,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       sessionNotice,
       signIn,
+      previewSignIn,
       signOut,
       reloadProfile,
       setProfile,
       endSession,
     }),
-    [status, profile, sessionNotice, signIn, signOut, reloadProfile, endSession],
+    [status, profile, sessionNotice, signIn, previewSignIn, signOut, reloadProfile, endSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -43,6 +43,7 @@ export function createEndpoints(http: ApiClient) {
     auth: {
       google: (idToken: string) =>
         http.post<SignInResult>('/auth/google', { body: { idToken }, auth: false }),
+      preview: () => http.post<SignInResult>('/auth/preview', { body: {}, auth: false }),
       refresh: (refreshToken: string) =>
         http.post<TokenPair>('/auth/refresh', { body: { refreshToken }, auth: false }),
       logout: () => http.post<{ loggedOut: boolean }>('/auth/logout'),

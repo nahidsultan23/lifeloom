@@ -22,7 +22,7 @@ A build with an empty `apiBaseUrl` shows a "no server address" screen instead of
 
 ## Screens
 
-Welcome with required consent and Google sign-in (no ad), Home (overview, empty state, optional lifespan, optional update notice), Goals (list, filter, search, create, edit, detail), Life ledger, Snapshot ("As it was", the stored record), Memories, What-if paths (list, create, edit, detail), Letters (compose, preview, schedule, detail, cancel), Profile (avatar, name, birth date, lifespan, time zone, email), Notifications, Privacy and data (export, deletion, policy links), About (version, ad choices, the only ad), and the Required update screen.
+Welcome with required consent, Google sign-in, and a development-only test account (no ad), Home (overview, empty state, optional lifespan, optional update notice), Goals (list, filter, search, create, edit, detail), Life ledger, Snapshot ("As it was", the stored record), Memories, What-if paths (list, create, edit, detail), Letters (compose, preview, schedule, detail, cancel), Profile (avatar, name, birth date, lifespan, time zone, email), Notifications, Privacy and data (export, deletion, policy links), About (version, ad choices, the only ad), and the Required update screen.
 
 ## Endpoints used
 

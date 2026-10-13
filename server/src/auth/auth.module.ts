@@ -4,6 +4,7 @@ import {
   HttpCode,
   Injectable,
   Module,
+  NotFoundException,
   Post,
   Req,
   UnauthorizedException,
@@ -15,6 +16,7 @@ import { PassportModule } from '@nestjs/passport';
 import { InjectModel, MongooseModule } from '@nestjs/mongoose';
 import {
   ApiBearerAuth,
+  ApiExcludeEndpoint,
   ApiOperation,
   ApiProperty,
   ApiTags,
@@ -30,12 +32,27 @@ import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser, type AuthUser } from '../common/api.js';
 import {
+  Goal,
+  GoalSchema,
+  Letter,
+  LetterSchema,
   Session,
   SessionSchema,
+  Timeline,
+  TimelineSchema,
   User,
   UserSchema,
+  WhatIf,
+  WhatIfSchema,
   type Doc,
 } from '../database/schemas.js';
+import {
+  PREVIEW_SUBJECT,
+  PreviewSignInDto,
+  previewLoginAllowed,
+  previewUserFields,
+  seedPreview,
+} from './preview.js';
 
 export class GoogleSignInDto {
   @ApiProperty({ description: 'Google ID token' })
@@ -76,6 +93,10 @@ export class AuthService {
   constructor(
     @InjectModel(User.name) private readonly users: Model<User>,
     @InjectModel(Session.name) private readonly sessions: Model<Session>,
+    @InjectModel(Goal.name) private readonly goals: Model<Goal>,
+    @InjectModel(Timeline.name) private readonly timeline: Model<Timeline>,
+    @InjectModel(WhatIf.name) private readonly paths: Model<WhatIf>,
+    @InjectModel(Letter.name) private readonly letters: Model<Letter>,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
   ) {}
@@ -164,6 +185,29 @@ export class AuthService {
     };
   }
 
+  async previewSignIn(request: Request) {
+    if (!previewLoginAllowed(this.config.get<string>('APP_ENV'))) {
+      throw new NotFoundException();
+    }
+    const user = await this.users.findOneAndUpdate(
+      { googleSubject: PREVIEW_SUBJECT },
+      {
+        $setOnInsert: previewUserFields(),
+      },
+      { upsert: true, new: true },
+    );
+    await seedPreview(user._id, {
+      goals: this.goals,
+      timeline: this.timeline,
+      paths: this.paths,
+      letters: this.letters,
+    });
+    return {
+      user: this.publicUser(user),
+      ...(await this.issue(user, request)),
+    };
+  }
+
   async refresh(dto: RefreshDto, request: Request) {
     let claims: { sub: string; sid: string; family: string };
     try {
@@ -243,6 +287,13 @@ export class AuthController {
     return this.auth.googleSignIn(dto, req);
   }
 
+  @Post('preview')
+  @HttpCode(200)
+  @ApiExcludeEndpoint()
+  preview(@Body() _dto: PreviewSignInDto, @Req() req: Request) {
+    return this.auth.previewSignIn(req);
+  }
+
   @Post('refresh')
   @HttpCode(200)
   @ApiOperation({ summary: 'Rotate a refresh token' })
@@ -266,6 +317,10 @@ export class AuthController {
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Session.name, schema: SessionSchema },
+      { name: Goal.name, schema: GoalSchema },
+      { name: Timeline.name, schema: TimelineSchema },
+      { name: WhatIf.name, schema: WhatIfSchema },
+      { name: Letter.name, schema: LetterSchema },
     ]),
   ],
   providers: [AuthService, JwtStrategy],

@@ -13,7 +13,8 @@ import { spacing } from '../theme';
 
 /** First screen. No ads here, by rule. */
 export function WelcomeScreen() {
-  const { signIn, sessionNotice } = useAuth();
+  const { signIn, previewSignIn, sessionNotice } = useAuth();
+  const allowPreview = config.variant !== 'production';
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | undefined>();
@@ -22,11 +23,11 @@ export function WelcomeScreen() {
     void hasAcceptedConsent().then(setConsent);
   }, []);
 
-  const start = async () => {
+  const start = async (mode: 'google' | 'preview') => {
     setBusy(true);
     setMessage(undefined);
     await saveConsent();
-    const result = await signIn();
+    const result = mode === 'preview' ? await previewSignIn() : await signIn();
     // On success the navigator swaps screens, so only failures stay here.
     if (!result.ok) {
       setBusy(false);
@@ -80,11 +81,21 @@ export function WelcomeScreen() {
       <Button
         label={t.welcome.signIn}
         icon="log-in"
-        onPress={start}
+        onPress={() => void start('google')}
         loading={busy}
         disabled={!consent}
         accessibilityHint={consent ? undefined : t.welcome.consentRequiredHint}
       />
+      {allowPreview ? (
+        <Button
+          label={t.welcome.previewSignIn}
+          icon="user"
+          variant="secondary"
+          onPress={() => void start('preview')}
+          loading={busy}
+          disabled={!consent}
+        />
+      ) : null}
     </ScreenTemplate>
   );
 }
