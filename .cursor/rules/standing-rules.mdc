@@ -9,8 +9,8 @@ These rules apply to every task in this repo. Follow them even when the user doe
 
 ## Before you implement
 
-1. Treat the files in `.cursor/rules/` as the project brief. Cursor injects `alwaysApply` rules into context, so do not re-read them from disk unless you are editing them.
-2. Do not scan the repository to rediscover conventions already stated in these rules.
+1. These rule files hold behavior, not a tour of the code. Cursor injects `alwaysApply` rules into context, so do not re-read them from disk unless you are editing them.
+2. For app structure, follow the project map rule and open only the map slice it names. Do not scan the repository to rediscover conventions already stated in these rules or in that slice.
 3. Open only the files the current task needs. Search by name or symbol before listing directories.
 4. If a convention is missing here, learn it from the files the task touches. Do not widen the search to the rest of the repo.
 
