@@ -50,7 +50,7 @@ export const environments: Record<Variant, AppConfig> = {
   development: {
     variant: 'development',
     // Android emulator: run `adb reverse tcp:3000 tcp:3000` so localhost works.
-    apiBaseUrl: 'http://localhost:3000/api/v1',
+    apiBaseUrl: 'http://192.168.50.159/api/v1',
     googleWebClientId: '',
     googleIosClientId: '',
     googleIosUrlScheme: '',
