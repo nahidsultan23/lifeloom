@@ -7,7 +7,7 @@ alwaysApply: true
 
 Tests must not connect to the original database.
 
-- Create a temporary in-memory database when the test run starts.
-- Point every test at that database only.
+- Create a temporary in-memory MongoDB when the test run starts.
+- Point every test at that database only. Do not use the development, staging, or production database.
 - Wipe it when the run finishes, including when tests fail.
 - Do not reuse a database left from a previous run.

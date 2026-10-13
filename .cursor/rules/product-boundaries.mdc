@@ -1,0 +1,13 @@
+---
+description: Isolate user data, and do not shame people for changed goals.
+alwaysApply: true
+---
+
+# Product boundaries
+
+- Scope every user-owned read and write to the authenticated user.
+- Verify Google ID tokens on the server. Never accept a client-supplied user id or email as identity.
+- Do not log tokens, secrets, letter text, personal notes, or presigned URLs.
+- Do not send personal content to ads, analytics, crash reports, or URLs.
+- Do not invent credentials, store identifiers, legal text, or support contacts.
+- Overdue, abandoned, or changed goals stay valid. Do not use shame, guilt, or failure language. Do not predict a user's death. Expected lifespan is optional and user-provided.

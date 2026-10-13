@@ -1,0 +1,10 @@
+---
+description: Show local time, and store notification preferences in the database.
+alwaysApply: true
+---
+
+# Time and notification preferences
+
+Show times in the app's local timezone. Store instants in UTC. A date-only value must not move to another calendar day because of timezone conversion.
+
+Goals and to-dos start with a default notification frequency. The user can change it at any time. Store the setting in the database so a device change does not drop it.

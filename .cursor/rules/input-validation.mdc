@@ -1,0 +1,15 @@
+---
+description: Validate every client input on the server, including maximum size.
+alwaysApply: true
+---
+
+# Input validation
+
+The server must not trust anything from the client.
+
+- Validate type, format, and an allowlist of fields before use.
+- Reject unexpected properties.
+- Give every text field a reasonable maximum length, and every upload a reasonable maximum size.
+- Reject a payload that exceeds the limit instead of reading it all into memory.
+- Choose the limit for the field's real use. Record the number in that side's build brief when you add the field.
+- Do not accept client-supplied identity, ownership, object keys, MIME types, or store URLs as proof.

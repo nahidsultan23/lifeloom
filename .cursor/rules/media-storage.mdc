@@ -1,0 +1,13 @@
+---
+description: Compress large photos on the server and delete unused stored files.
+alwaysApply: true
+---
+
+# Photos and stored files
+
+The server compresses a photo when it is large. Keep enough quality for the interface, and keep the file small enough that stored files stay lean. Do this on the server. Client files can be altered, so client compression is not the guarantee.
+
+- Limit how many photos each feature may keep. Use a small number that fits the feature.
+- Delete objects that are unused, deleted, replaced, uploaded but never attached, or no longer referenced.
+- Delete temporary files when the operation finishes, including when it fails.
+- Keep objects private. Issue access only to the owner, for a short time.
