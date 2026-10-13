@@ -30,11 +30,13 @@ import semver from 'semver';
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
-  PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { Upload as MultipartUpload } from '@aws-sdk/lib-storage';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { ZipArchive } from 'archiver';
 import { randomUUID } from 'node:crypto';
+import { PassThrough, Readable } from 'node:stream';
 import type { Request } from 'express';
 import { CurrentUser, type AuthUser } from '../common/api.js';
 import {
@@ -138,7 +140,11 @@ export class UpdateRequiredGuard implements CanActivate {
       !Number.isInteger(build) ||
       !appIdentifier
     ) {
-      return true;
+      throw new UnprocessableEntityException({
+        code: 'APP_CLIENT_METADATA_REQUIRED',
+        message:
+          'App platform, version, build, and identifier headers are required',
+      });
     }
     const result = await this.updates.check({
       platform: platform as 'android' | 'ios',
@@ -189,14 +195,11 @@ export class PrivacyService {
       this.timeline.find({ ownerId: id }).lean(),
       this.paths.find({ ownerId: id }).lean(),
       this.letters.find({ ownerId: id }).lean(),
-      this.uploads
-        .find({ ownerId: id })
-        .select('contentType byteSize checksum purpose createdAt')
-        .lean(),
+      this.uploads.find({ ownerId: id }).lean(),
     ]);
     if (!user) throw new NotFoundException();
-    const key = `${this.config.get<string>('AWS_S3_PREFIX', 'development/')}exports/${ownerId}/${randomUUID()}.json`;
-    const body = JSON.stringify({
+    const key = `${this.config.get<string>('AWS_S3_PREFIX', 'development/')}exports/${ownerId}/${randomUUID()}.zip`;
+    const manifest = {
       exportedAt: new Date().toISOString(),
       formatVersion: 1,
       user,
@@ -204,17 +207,48 @@ export class PrivacyService {
       timeline,
       whatIfPaths: paths,
       letters,
-      attachmentMetadata: uploads,
-    });
-    await this.s3.send(
-      new PutObjectCommand({
+      attachmentMetadata: uploads.map(
+        ({ objectKey: _objectKey, ...metadata }) => metadata,
+      ),
+    };
+    const output = new PassThrough();
+    const archive = new ZipArchive({ zlib: { level: 6 } });
+    archive.pipe(output);
+    const multipart = new MultipartUpload({
+      client: this.s3,
+      params: {
         Bucket: this.bucket,
         Key: key,
-        Body: body,
-        ContentType: 'application/json',
+        Body: output,
+        ContentType: 'application/zip',
         ServerSideEncryption: 'AES256',
-      }),
-    );
+      },
+    });
+    const uploadPromise = multipart.done();
+    archive.append(JSON.stringify(manifest, null, 2), { name: 'data.json' });
+    for (const attachment of uploads) {
+      const object = await this.s3.send(
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: attachment.objectKey,
+        }),
+      );
+      if (object.Body) {
+        const extension =
+          attachment.contentType === 'image/webp'
+            ? 'webp'
+            : attachment.contentType === 'audio/mpeg'
+              ? 'mp3'
+              : attachment.contentType === 'audio/mp4'
+                ? 'm4a'
+                : 'webm';
+        archive.append(object.Body as unknown as Readable, {
+          name: `attachments/${attachment._id.toString()}.${extension}`,
+        });
+      }
+    }
+    await archive.finalize();
+    await uploadPromise;
     const expiresIn = 900;
     const url = await getSignedUrl(
       this.s3,
@@ -229,7 +263,13 @@ export class PrivacyService {
       runAt: new Date(Date.now() + expiresIn * 1000),
       result: { objectKey: key },
     });
-    return { url, expiresIn, format: 'json', includesFileMetadata: true };
+    return {
+      url,
+      expiresIn,
+      format: 'zip',
+      includesFiles: true,
+      manifest: 'data.json',
+    };
   }
 
   async deleteAccount(ownerId: string, confirmation: string) {
@@ -240,13 +280,24 @@ export class PrivacyService {
       });
     }
     const id = new Types.ObjectId(ownerId);
-    const uploads = await this.uploads.find({ ownerId: id }).lean();
-    if (uploads.length) {
+    const [uploads, exportJobs] = await Promise.all([
+      this.uploads.find({ ownerId: id }).lean(),
+      this.jobs.find({ ownerId: id, type: 'export' }).lean(),
+    ]);
+    const objectKeys = [
+      ...uploads.map((upload) => upload.objectKey),
+      ...exportJobs
+        .map((job) => job.result.objectKey)
+        .filter((key): key is string => typeof key === 'string'),
+    ];
+    for (let index = 0; index < objectKeys.length; index += 1000) {
       await this.s3.send(
         new DeleteObjectsCommand({
           Bucket: this.bucket,
           Delete: {
-            Objects: uploads.map((upload) => ({ Key: upload.objectKey })),
+            Objects: objectKeys
+              .slice(index, index + 1000)
+              .map((key) => ({ Key: key })),
           },
         }),
       );

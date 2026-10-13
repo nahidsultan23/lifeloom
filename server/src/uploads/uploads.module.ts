@@ -48,7 +48,7 @@ import {
 } from '../database/schemas.js';
 
 const PURPOSES = ['avatar', 'letter', 'memory', 'what-if'] as const;
-type Purpose = (typeof PURPOSES)[number];
+export type Purpose = (typeof PURPOSES)[number];
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const AUDIO_TYPES = new Set(['audio/mpeg', 'audio/mp4', 'audio/webm']);
 const CAPS: Record<Purpose, { photos: number; audio: number }> = {
@@ -57,6 +57,23 @@ const CAPS: Record<Purpose, { photos: number; audio: number }> = {
   memory: { photos: 5, audio: 3 },
   'what-if': { photos: 3, audio: 0 },
 };
+
+export function frameImage(buffer: Buffer, purpose: Purpose): Promise<Buffer> {
+  const ratio =
+    purpose === 'avatar'
+      ? { width: 1024, height: 1024 }
+      : { width: 1440, height: 1080 };
+  return sharp(buffer)
+    .rotate()
+    .resize({
+      ...ratio,
+      fit: 'contain',
+      background: '#F6F1E7',
+      withoutEnlargement: false,
+    })
+    .webp({ quality: 80 })
+    .toBuffer();
+}
 
 @Injectable()
 export class UploadsService implements OnModuleInit, OnModuleDestroy {
@@ -97,20 +114,7 @@ export class UploadsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async frameImage(buffer: Buffer, purpose: Purpose): Promise<Buffer> {
-    const ratio =
-      purpose === 'avatar'
-        ? { width: 1024, height: 1024 }
-        : { width: 1440, height: 1080 };
-    return sharp(buffer)
-      .rotate()
-      .resize({
-        ...ratio,
-        fit: 'contain',
-        background: '#F6F1E7',
-        withoutEnlargement: false,
-      })
-      .webp({ quality: 80 })
-      .toBuffer();
+    return frameImage(buffer, purpose);
   }
 
   async create(
@@ -372,4 +376,35 @@ export class UploadsController {
     return this.uploads.access(u.id, id);
   }
 
-  @Post(':id/attach/:parent
+  @Post(':id/attach/:parentType/:parentId')
+  attach(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Param('parentType') type: Purpose,
+    @Param('parentId') parentId: string,
+  ) {
+    return this.uploads.attach(u.id, id, type, parentId);
+  }
+
+  @Delete(':id')
+  remove(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.uploads.remove(u.id, id);
+  }
+}
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([
+      { name: Upload.name, schema: UploadSchema },
+      { name: User.name, schema: UserSchema },
+      { name: Letter.name, schema: LetterSchema },
+      { name: Timeline.name, schema: TimelineSchema },
+      { name: WhatIf.name, schema: WhatIfSchema },
+      { name: Goal.name, schema: GoalSchema },
+    ]),
+  ],
+  providers: [UploadsService],
+  controllers: [UploadsController],
+  exports: [UploadsService],
+})
+export class UploadsModule {}

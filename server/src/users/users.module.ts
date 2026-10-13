@@ -9,12 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { InjectModel, MongooseModule } from '@nestjs/mongoose';
-import {
-  ApiBearerAuth,
-  ApiProperty,
-  ApiPropertyOptional,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import {
   IsInt,

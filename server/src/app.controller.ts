@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import { Connection } from 'mongoose';
@@ -18,16 +18,10 @@ export class AppController {
   @ApiExcludeEndpoint()
   ready() {
     if (this.connection.readyState !== 1) {
-      return {
-        __raw: {
-          success: false,
-          error: {
-            code: 'DEPENDENCY_UNAVAILABLE',
-            message: 'Service is not ready',
-            fieldErrors: {},
-          },
-        },
-      };
+      throw new ServiceUnavailableException({
+        code: 'DEPENDENCY_UNAVAILABLE',
+        message: 'Service is not ready',
+      });
     }
     return { status: 'ready', database: 'available' };
   }

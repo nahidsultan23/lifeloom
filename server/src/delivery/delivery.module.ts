@@ -31,7 +31,7 @@ import {
   Min,
 } from 'class-validator';
 import { DateTime } from 'luxon';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import nodemailer, { type Transporter } from 'nodemailer';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging, type Messaging } from 'firebase-admin/messaging';
@@ -48,6 +48,7 @@ import {
   LetterSchema,
   User,
   UserSchema,
+  type Doc,
 } from '../database/schemas.js';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -374,7 +375,7 @@ export class DeliveryService implements OnModuleInit, OnModuleDestroy {
     return true;
   }
 
-  private async deliverLetter(job: Job) {
+  private async deliverLetter(job: Doc<Job>) {
     const letter = await this.letters.findOneAndUpdate(
       {
         _id: job.resourceId,
@@ -403,4 +404,99 @@ export class DeliveryService implements OnModuleInit, OnModuleDestroy {
       await this.adapters.push(devices.map((device) => device.token));
       job.result = { ...job.result, pushSent: true };
       await job.save();
-    
+    }
+    letter.status = 'delivered';
+    letter.deliveredAt = new Date();
+    await letter.save();
+  }
+
+  private async deliverReminder(job: Doc<Job>): Promise<boolean> {
+    const goal = await this.goals.findOne({
+      _id: job.resourceId,
+      ownerId: job.ownerId,
+      status: 'active',
+      deletedAt: { $exists: false },
+    });
+    if (!goal) return false;
+    const devices = await this.devices
+      .find({ ownerId: job.ownerId, enabled: true })
+      .lean();
+    await this.adapters.pushReminder(devices.map((device) => device.token));
+    const intervalDays = Number(job.result.intervalDays);
+    if (!Number.isFinite(intervalDays) || intervalDays < 1) return false;
+    const runAt = DateTime.now().plus({ days: intervalDays }).toJSDate();
+    await this.jobs.updateOne(
+      { _id: job._id, workerId: this.workerId },
+      {
+        $set: {
+          status: 'pending',
+          runAt,
+          leaseUntil: null,
+          workerId: null,
+          idempotencyKey: `reminder:${goal._id.toString()}:${runAt.toISOString()}`,
+        },
+      },
+    );
+    return true;
+  }
+}
+
+@ApiTags('letters')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
+@Controller('letters')
+export class LettersController {
+  constructor(private readonly delivery: DeliveryService) {}
+  @Post() create(@CurrentUser() u: AuthUser, @Body() dto: LetterDto) {
+    return this.delivery.createLetter(u.id, dto);
+  }
+  @Get() list(@CurrentUser() u: AuthUser) {
+    return this.delivery.list(u.id);
+  }
+  @Get(':id') one(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.delivery.one(u.id, id);
+  }
+  @Patch(':id') reschedule(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: LetterDto,
+  ) {
+    return this.delivery.reschedule(u.id, id, dto);
+  }
+  @Delete(':id') cancel(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.delivery.cancel(u.id, id);
+  }
+}
+
+@ApiTags('devices')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
+@Controller('devices')
+export class DevicesController {
+  constructor(private readonly delivery: DeliveryService) {}
+  @Post() register(@CurrentUser() u: AuthUser, @Body() dto: DeviceDto) {
+    return this.delivery.registerDevice(u.id, dto);
+  }
+  @Delete(':token') remove(
+    @CurrentUser() u: AuthUser,
+    @Param('token') token: string,
+  ) {
+    return this.delivery.removeDevice(u.id, token);
+  }
+}
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: Letter.name, schema: LetterSchema },
+      { name: Job.name, schema: JobSchema },
+      { name: Device.name, schema: DeviceSchema },
+      { name: Goal.name, schema: GoalSchema },
+    ]),
+  ],
+  providers: [DeliveryService, DeliveryAdapters],
+  controllers: [LettersController, DevicesController],
+  exports: [DeliveryService],
+})
+export class DeliveryModule {}

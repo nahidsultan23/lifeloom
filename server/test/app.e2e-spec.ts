@@ -1,18 +1,36 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, Injectable, ValidationPipe } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
+import { PassportModule } from '@nestjs/passport';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { Model } from 'mongoose';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { PassportStrategy } from '@nestjs/passport';
 import request from 'supertest';
-import { AuthModule } from '../src/auth/auth.module.js';
 import {
   ApiEnvelopeInterceptor,
   GlobalExceptionFilter,
 } from '../src/common/api.js';
 import { User } from '../src/database/schemas.js';
 import { PlanningModule } from '../src/planning/planning.module.js';
+
+const TEST_ACCESS_SECRET = 'test-access-secret-at-least-32-characters';
+
+@Injectable()
+class TestJwtStrategy extends PassportStrategy(Strategy) {
+  constructor() {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: TEST_ACCESS_SECRET,
+    });
+  }
+
+  validate(payload: { sub: string; email: string; sid: string }) {
+    return { id: payload.sub, email: payload.email, sessionId: payload.sid };
+  }
+}
 
 describe('Lifeloom API (e2e)', () => {
   let app: INestApplication;
@@ -26,8 +44,7 @@ describe('Lifeloom API (e2e)', () => {
     process.env.APP_ENV = 'test';
     process.env.MONGODB_URI = mongo.getUri();
     process.env.MONGODB_DB_NAME = 'lifeloom-test';
-    process.env.ACCESS_TOKEN_SECRET =
-      'test-access-secret-at-least-32-characters';
+    process.env.ACCESS_TOKEN_SECRET = TEST_ACCESS_SECRET;
     process.env.REFRESH_TOKEN_SECRET =
       'test-refresh-secret-at-least-32-characters';
     process.env.GOOGLE_ALLOWED_AUDIENCES = 'test-client';
@@ -39,9 +56,11 @@ describe('Lifeloom API (e2e)', () => {
         MongooseModule.forRoot(process.env.MONGODB_URI, {
           dbName: process.env.MONGODB_DB_NAME,
         }),
-        AuthModule,
+        PassportModule,
+        JwtModule.register({ secret: TEST_ACCESS_SECRET }),
         PlanningModule,
       ],
+      providers: [TestJwtStrategy],
     }).compile();
 
     app = moduleFixture.createNestApplication();

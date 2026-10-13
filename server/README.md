@@ -1,124 +1,131 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Lifeloom server
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS REST API for Lifeloom. It provides Google-backed Lifeloom sessions,
+profiles, goals, historical timeline records, what-if paths, private media,
+durable reminders and future-self letters, app-update enforcement, data export,
+and account deletion.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Local setup
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+Requirements: Node.js 24, pnpm, MongoDB, and an S3 bucket or S3-compatible
+service.
 
 ```bash
-$ pnpm install
+pnpm install
+docker compose up -d
+copy .env.example .env
+pnpm start:dev
 ```
 
-## Compile and run the project
+Create the private `AWS_S3_BUCKET` in MinIO before uploading files. Never reuse
+the example credentials outside local development.
+
+The API base path is `/api/v1`. Swagger UI is at `/docs` and its OpenAPI JSON is
+at `/docs-json` in development and staging. Both are absent in production.
+Liveness is `/health/live`; readiness is `/health/ready`.
+
+## Authentication
+
+1. `POST /api/v1/auth/google` accepts a Google ID token. The server verifies its
+   signature, issuer, expiry, and configured audience.
+2. The response contains a short-lived Lifeloom access token and rotating
+   refresh token.
+3. Send `Authorization: Bearer <accessToken>` on protected endpoints.
+4. `POST /api/v1/auth/refresh` rotates the refresh token. Reuse revokes the token
+   family.
+5. `POST /api/v1/auth/logout` revokes the current session.
+
+Protected mobile requests also send `x-app-platform`, `x-app-version`,
+`x-app-build`, and `x-app-identifier`. A persisted mandatory app policy can
+return `APP_UPDATE_REQUIRED`.
+
+## API conventions
+
+Success:
+
+```json
+{ "success": true, "data": {} }
+```
+
+Error:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "One or more fields are invalid",
+    "fieldErrors": {},
+    "requestId": "..."
+  }
+}
+```
+
+Dates such as birthdays and goal deadlines use `YYYY-MM-DD` and do not shift
+zones. Instants use UTC ISO-8601. User scheduling uses the persisted IANA time
+zone. A Feb 29 age-based delivery occurs on Feb 28 in a non-leap target year.
+
+## Upload flow
+
+1. Upload one multipart `file` to `POST /api/v1/uploads?purpose=...`.
+2. The server detects the real type, frames photos, writes a private temporary
+   object, and returns upload metadata.
+3. Create the parent letter, memory, or what-if path.
+4. Attach with
+   `POST /api/v1/uploads/:id/attach/:parentType/:parentId`.
+5. Obtain a short-lived owner-authorized URL at
+   `GET /api/v1/uploads/:id/access`.
+
+Temporary uploads expire after 24 hours by default. Replaced avatars, deleted
+attachments, account data, and expired temporary/export objects are removed
+from S3 by server-side cleanup.
+
+## Jobs and delivery
+
+Jobs are persisted in MongoDB and atomically leased by workers. Restarted
+workers recover expired leases. Delivery attempts are bounded and use
+at-most-once channel markers to prevent a retry from sending the same message
+twice. Set `BACKGROUND_JOBS_ENABLED=true` to run workers.
+
+SMTP and FCM adapters are disabled by default. Development never emails a real
+recipient unless email is explicitly enabled and `EMAIL_DELIVERY_MODE=smtp`.
+Future-letter email contains an authenticated API link, never the letter body.
+
+App-update policies are persisted in MongoDB and intentionally have no public
+mutation route. Operators provision them through trusted deployment tooling.
+
+## Privacy
+
+`GET /api/v1/privacy/export` streams a private ZIP containing `data.json` and
+the user's stored attachments, returns a 15-minute URL, and schedules deletion.
+`DELETE /api/v1/privacy/account` requires the exact confirmation
+`DELETE MY ACCOUNT` and removes records, sessions, jobs, and current S3 objects.
+Encrypted backups may retain data until the operator's configured retention
+period ends.
+
+## Verification
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+pnpm format
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:e2e
+pnpm build
+pnpm audit
 ```
 
-## Run tests
-
-```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
-```
+Tests create a fresh in-memory MongoDB and destroy it after the run. Google,
+S3, SMTP, and FCM are external boundaries and must use test doubles in tests.
 
 ## Deployment
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+The multi-stage image runs as a non-root user and handles Nest shutdown hooks.
+Production should use EC2 IAM roles instead of static AWS keys, TLS, strict
+CORS, private MongoDB/S3 networking, and secret injection outside git. Use
+separate databases, buckets, email behavior, and policies for development,
+staging, and production.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-To add it to this project:
-
-```bash
-$ pnpm install @nestjs/observe
-```
-
-Then follow the [setup guide](https://docs.nestjs.com/observability/overview) - it takes a single import and an app key.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+All supported settings and safe placeholders are documented in `.env.example`.
+Real OAuth IDs, store IDs, URLs, credentials, support contacts, and retention
+periods remain operator-supplied.

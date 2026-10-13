@@ -1,6 +1,7 @@
 # Lifeloom server brief
 
-**Status:** Not implemented. This is the build brief, not proof that code exists.  
+**Status:** Implemented under `server/`; verification commands and operational
+requirements are documented in `server/README.md`.  
 **Build order:** Build the server from this file before the client. Do not open `.cursor/builds/client.md` for server work.  
 **Stack:** NestJS, TypeScript, MongoDB, pnpm. Package installs and scripts use pnpm.
 
@@ -353,6 +354,10 @@ Tests use a temporary in-memory MongoDB created when the run starts and destroye
 TLS. CORS allowlist. Rate limits. Body and upload limits. DTO allowlists. Secure refresh. No verbose production errors. Least-privilege IAM. Dependency audit in CI when CI exists. No secrets in source, fixtures, or logs. No Swagger in production.
 
 ## Open decisions
+
+Implemented decisions: durable jobs use atomically leased MongoDB records
+instead of Redis/BullMQ. Push delivery uses FCM for Android and iOS. Personal
+exports are private ZIP files with a 15-minute URL and scheduled object cleanup.
 
 Do not invent the operator's legal name, address, support email, jurisdiction, store ids, OAuth client ids, AWS or SMTP credentials, production URLs, retention periods, compliance claims, or trademark clearance. Letter email format defaults to a secure link until the owner says otherwise. Paid ad-free subscription is not in this build.
 

@@ -10,6 +10,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { json, urlencoded } from 'express';
+import type { Application } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 import { ApiEnvelopeInterceptor, GlobalExceptionFilter } from './common/api.js';
@@ -39,6 +40,12 @@ async function bootstrap() {
   });
   const config = app.get(ConfigService);
   const limit = `${config.get<number>('REQUEST_BODY_LIMIT_MB', 1)}mb`;
+  if (config.get<boolean>('TRUST_PROXY', false)) {
+    (app.getHttpAdapter().getInstance() as Application).set(
+      'trust proxy',
+      true,
+    );
+  }
 
   app.use(helmet());
   app.use(cookieParser());

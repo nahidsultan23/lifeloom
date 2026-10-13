@@ -27,6 +27,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { randomUUID, createHmac } from 'node:crypto';
 import type { Request } from 'express';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUser, type AuthUser } from '../common/api.js';
 import {
   Session,
@@ -228,6 +229,7 @@ export class AuthService {
 }
 
 @ApiTags('auth')
+@Throttle({ default: { limit: 10, ttl: 60000 } })
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}

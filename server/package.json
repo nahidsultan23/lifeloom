@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1150.0",
+    "@aws-sdk/lib-storage": "^3.1150.0",
     "@aws-sdk/s3-request-presigner": "^3.1150.0",
     "@nestjs/common": "^12.0.1",
     "@nestjs/config": "^12.0.1",
@@ -35,6 +36,7 @@
     "@nestjs/platform-express": "^12.0.1",
     "@nestjs/swagger": "^12.0.2",
     "@nestjs/throttler": "^6.7.1",
+    "archiver": "^8.0.0",
     "argon2": "^0.45.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
@@ -57,10 +59,12 @@
     "uuid": "^14.0.3"
   },
   "devDependencies": {
+    "@jest/globals": "^30.5.2",
     "@nestjs/cli": "^12.0.0",
     "@nestjs/mau": "^0.2.6",
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
+    "@types/archiver": "^8.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",

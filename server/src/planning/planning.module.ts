@@ -139,7 +139,11 @@ export class PlanningService {
       },
       { $set: { status: 'cancelled' } },
     );
-    if (goal.deletedAt || goal.status !== 'active' || goal.deadlineType === 'none')
+    if (
+      goal.deletedAt ||
+      goal.status !== 'active' ||
+      goal.deadlineType === 'none'
+    )
       return;
     const user = await this.users.findById(ownerId).lean();
     let deadline: DateTime | null = null;
@@ -147,7 +151,11 @@ export class PlanningService {
       deadline = DateTime.fromISO(goal.deadlineDate, {
         zone: user?.timeZone ?? 'UTC',
       }).startOf('day');
-    } else if (goal.deadlineType === 'age' && goal.targetAge && user?.birthDate) {
+    } else if (
+      goal.deadlineType === 'age' &&
+      goal.targetAge &&
+      user?.birthDate
+    ) {
       deadline = DateTime.fromISO(user.birthDate, {
         zone: user.timeZone,
       })
@@ -157,8 +165,7 @@ export class PlanningService {
     if (!deadline?.isValid) return;
     const reminder = goal.reminder as { frequency?: string; mode?: string };
     const frequency =
-      reminder.frequency ??
-      defaultReminder(deadline.toISODate() ?? undefined);
+      reminder.frequency ?? defaultReminder(deadline.toISODate() ?? undefined);
     if (frequency === 'none' || reminder.mode === 'disabled') return;
     const daysByFrequency: Record<string, number> = {
       daily: 1,
@@ -171,9 +178,11 @@ export class PlanningService {
     if (!intervalDays) return;
     const next = DateTime.min(
       deadline,
-      DateTime.now().setZone(user?.timeZone ?? 'UTC').plus({
-        days: intervalDays,
-      }),
+      DateTime.now()
+        .setZone(user?.timeZone ?? 'UTC')
+        .plus({
+          days: intervalDays,
+        }),
     );
     const idempotencyKey = `reminder:${goal._id.toString()}:${next.toUTC().toISO()}`;
     await this.jobs.findOneAndUpdate(
@@ -419,4 +428,83 @@ export class GoalsController {
     return this.planning.goalsList(u.id, q.page, q.limit);
   }
   @Get(':id') get(@CurrentUser() u: AuthUser, @Param('id') id: string) {
-    return this.pl
+    return this.planning.goal(u.id, id);
+  }
+  @Patch(':id') update(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: GoalDto,
+  ) {
+    return this.planning.updateGoal(u.id, id, dto);
+  }
+  @Post(':id/status') status(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: GoalStatusDto,
+  ) {
+    return this.planning.status(u.id, id, dto.status);
+  }
+  @Delete(':id') remove(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.planning.deleteGoal(u.id, id);
+  }
+}
+
+@ApiTags('timeline')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
+@Controller('timeline')
+export class TimelineController {
+  constructor(private readonly planning: PlanningService) {}
+  @Get() list(@CurrentUser() u: AuthUser, @Query() q: PageDto) {
+    return this.planning.timelineList(u.id, q.page, q.limit);
+  }
+  @Post('memories') create(@CurrentUser() u: AuthUser, @Body() dto: MemoryDto) {
+    return this.planning.createMemory(u.id, dto);
+  }
+  @Delete('memories/:id') remove(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+  ) {
+    return this.planning.removeMemory(u.id, id);
+  }
+}
+
+@ApiTags('what-if')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'))
+@Controller('what-if-paths')
+export class WhatIfController {
+  constructor(private readonly planning: PlanningService) {}
+  @Post() create(@CurrentUser() u: AuthUser, @Body() dto: WhatIfDto) {
+    return this.planning.createPath(u.id, dto);
+  }
+  @Get() list(@CurrentUser() u: AuthUser, @Query() q: PageDto) {
+    return this.planning.pathsList(u.id, q.page, q.limit);
+  }
+  @Patch(':id') update(
+    @CurrentUser() u: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: WhatIfDto,
+  ) {
+    return this.planning.updatePath(u.id, id, dto);
+  }
+  @Delete(':id') remove(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.planning.removePath(u.id, id);
+  }
+}
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([
+      { name: Goal.name, schema: GoalSchema },
+      { name: Timeline.name, schema: TimelineSchema },
+      { name: WhatIf.name, schema: WhatIfSchema },
+      { name: User.name, schema: UserSchema },
+      { name: Job.name, schema: JobSchema },
+    ]),
+  ],
+  providers: [PlanningService],
+  controllers: [GoalsController, TimelineController, WhatIfController],
+  exports: [PlanningService],
+})
+export class PlanningModule {}
