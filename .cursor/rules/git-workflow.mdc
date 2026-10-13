@@ -1,0 +1,15 @@
+---
+description: Commit and push finished work at natural intervals unless the user says not to.
+alwaysApply: true
+---
+
+# Git workflow
+
+After a coherent chunk of work is finished, commit it and push to the remote. Do this without waiting to be asked. Skip both when the user explicitly says not to commit.
+
+- One commit per coherent change. Do not batch unrelated work.
+- Write a 1–2 sentence message that states why the change was made.
+- Follow the repository's existing message style.
+- Never commit secrets (`.env`, credentials, keys). Warn the user if they ask to commit those files.
+- Never update git config, skip hooks, or force-push unless the user explicitly asks.
+- If a commit hook fails, fix the problem and make a new commit.
