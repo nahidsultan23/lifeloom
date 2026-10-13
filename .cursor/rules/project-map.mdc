@@ -1,0 +1,36 @@
+---
+description: Read and update only the map slice for the area being changed.
+alwaysApply: true
+---
+
+# Project map
+
+The app map lives in `.cursor/maps/`. Nothing there is loaded until you open a file.
+
+## Before you change code
+
+1. Open `.cursor/maps/index.md` only. Each area is one line plus a path.
+2. Open the single area file the task needs. Leave every other area file unread.
+3. If that file points to a narrower slice, open only that slice.
+4. Then open only the source files for that slice.
+
+## After you change code
+
+Update a map only when a slice's purpose, entry points, or boundaries changed. Update the narrowest file, and the parent line if that one-line description is now wrong. Leave every other map file alone.
+
+Do not record formatting, copy tweaks, local refactors, or bugfixes that leave the map true.
+
+## Build briefs
+
+Feature detail lives in `.cursor/builds/server.md` and `.cursor/builds/client.md`. Those files stay unread until opened.
+
+- Server work: open the server brief only. The server is built first.
+- Client work: open the client brief only.
+- One feature: search that brief for its heading. Do not open the other brief.
+- After a scope change, update that brief. Do not copy the brief into the map.
+
+## How slices grow
+
+- Index: area name, one-line purpose, path. No implementation detail.
+- Area file: slices as one line plus a path. No detail that belongs in a child file.
+- When an area or slice summary passes about 40 lines, split it into a new file and leave a one-line pointer.

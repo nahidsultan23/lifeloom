@@ -1,0 +1,10 @@
+---
+description: The client uses a public config file and atomic design where it fits.
+alwaysApply: true
+---
+
+# Client structure
+
+The client has no `.env` and no `.env.example`. Put public settings in a config file. Anything shipped in the client is visible to the user, so secrets stay on the server.
+
+Use atomic design when a screen is built from reusable pieces: atoms, molecules, organisms, templates, and screens. Leave a one-off layout whole when splitting it would add empty layers.
