@@ -1,0 +1,12 @@
+---
+description: Use pnpm for every package install and script.
+alwaysApply: true
+---
+
+# Package manager
+
+Use pnpm. Do not use npm or yarn for installs, scripts, or lockfiles.
+
+- Install with `pnpm install`.
+- Add a package with `pnpm add`.
+- Run a script with `pnpm <script>` or `pnpm run <script>`.
