@@ -1,6 +1,6 @@
 # Lifeloom client brief
 
-**Status:** Not implemented. This is the build brief, not proof that code exists.  
+**Status:** First build done under `client/` (Expo SDK 54). Gaps, config the owner must supply, and what was and was not verified are in `client/docs/handoff.md`.  
 **Build order:** Build the client after the server. Do not open `.cursor/builds/server.md` for client work. Use the server's Swagger and DTOs as the API contract.  
 **Stack:** React Native, TypeScript, pnpm, Android and iOS from one codebase. Expo is preferred if the native integrations this brief needs are supported. Verify that before committing to Expo.
 
