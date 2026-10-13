@@ -1,9 +1,11 @@
 # Client
 
-Frontend. No screens, routes, or dependencies yet. The folder contains only `.gitkeep`.
+Frontend. Not started. Build this after the server.
 
-List a slice below when a real feature appears. One line here. Move detail into a child file only if this file grows past about 40 lines.
+Brief: `.cursor/builds/client.md`
+
+Open that brief for client work. Do not open the server brief.
 
 ## Slices
 
-None.
+None. Add a slice when a screen or feature exists in code.

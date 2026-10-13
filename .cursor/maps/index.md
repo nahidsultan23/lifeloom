@@ -1,10 +1,10 @@
 # Lifeloom
 
-Empty app. Frontend and backend are separate folders and are not wired together.
+Personal life-planning app. Frontend and backend are separate and are not built yet.
 
-Open one area file for the task. Leave the others unread.
+Open one area file for the task. Leave the other unread.
 
 | Area | Purpose | Map |
 | --- | --- | --- |
-| client | Frontend. Placeholder only. | `.cursor/maps/client.md` |
-| server | Backend. Placeholder only. | `.cursor/maps/server.md` |
+| client | Frontend. Not started. Build after the server. | `.cursor/maps/client.md` |
+| server | Backend. Not started. Build first. | `.cursor/maps/server.md` |

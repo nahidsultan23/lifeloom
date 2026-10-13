@@ -1,9 +1,11 @@
 # Server
 
-Backend. No modules, routes, or dependencies yet. The folder contains only `.gitkeep`.
+Backend. Not started. Build this before the client.
 
-List a slice below when a real feature appears. One line here. Move detail into a child file only if this file grows past about 40 lines.
+Brief: `.cursor/builds/server.md`
+
+Open that brief for server work. Do not open the client brief.
 
 ## Slices
 
-None.
+None. Add a slice when a module exists in code.
