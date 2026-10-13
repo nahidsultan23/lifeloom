@@ -77,6 +77,7 @@ const config: ExpoConfig = {
     permissions: ['POST_NOTIFICATIONS'],
   },
   plugins,
+  web: { bundler: 'metro', favicon: './assets/branding/icon.png' },
   extra: { variant },
 };
 

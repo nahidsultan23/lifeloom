@@ -88,6 +88,7 @@ export const t = {
   },
   signIn: {
     notConfigured: 'Google sign-in is not set up for this build yet.',
+    webUnavailable: 'Google sign-in runs in the Android and iOS app.',
     failed: 'Google sign-in did not finish. Please try again.',
     playServices: 'Google Play services are needed to sign in on this device.',
     invalidToken: 'Google could not confirm who you are. Please try again.',

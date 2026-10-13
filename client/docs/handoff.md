@@ -64,6 +64,7 @@ Where the server differs from the client brief, the client follows the server:
 
 ```
 pnpm install
+pnpm start             # opens the app in a browser at http://localhost:8081
 pnpm typecheck
 pnpm test
 pnpm assets            # regenerate branding images
