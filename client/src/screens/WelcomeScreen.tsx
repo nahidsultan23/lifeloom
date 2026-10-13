@@ -26,12 +26,17 @@ export function WelcomeScreen() {
   const start = async (mode: 'google' | 'preview') => {
     setBusy(true);
     setMessage(undefined);
-    await saveConsent();
-    const result = mode === 'preview' ? await previewSignIn() : await signIn();
-    // On success the navigator swaps screens, so only failures stay here.
-    if (!result.ok) {
+    try {
+      await saveConsent();
+      const result = mode === 'preview' ? await previewSignIn() : await signIn();
+      // On success the navigator swaps screens, so only failures stay here.
+      if (!result.ok) {
+        setBusy(false);
+        if (!result.cancelled) setMessage(result.message);
+      }
+    } catch {
       setBusy(false);
-      if (!result.cancelled) setMessage(result.message);
+      setMessage(t.errors.generic);
     }
   };
 

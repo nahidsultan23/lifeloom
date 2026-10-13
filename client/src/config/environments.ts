@@ -49,8 +49,8 @@ const emptyLegal = { privacyPolicyUrl: '', termsUrl: '', supportUrl: '' };
 export const environments: Record<Variant, AppConfig> = {
   development: {
     variant: 'development',
-    // Android emulator: run `adb reverse tcp:3000 tcp:3000` so localhost works.
-    apiBaseUrl: 'http://192.168.50.159/api/v1',
+    // The API listens on port 3000. Android emulator: `adb reverse tcp:3000 tcp:3000`.
+    apiBaseUrl: 'http://192.168.50.159:3000/api/v1',
     googleWebClientId: '',
     googleIosClientId: '',
     googleIosUrlScheme: '',

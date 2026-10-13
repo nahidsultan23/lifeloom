@@ -15,16 +15,16 @@ export const platform: 'android' | 'ios' =
 /** Identity the server expects in app-update checks and headers. */
 export function appIdentity() {
   const build = Number(Application.nativeBuildVersion);
+  const configured =
+    (platform === 'android' ? config.androidPackageId : config.iosAppIdentifier) ||
+    Application.applicationId ||
+    '';
   return {
     platform,
     version: Application.nativeApplicationVersion ?? '0.1.0',
     build: Number.isInteger(build) && build > 0 ? build : 1,
-    appIdentifier:
-      (platform === 'android'
-        ? config.androidPackageId
-        : config.iosAppIdentifier) ||
-      Application.applicationId ||
-      '',
+    // A production build must use the real store id. Local builds may not have one yet.
+    appIdentifier: configured || (config.variant === 'production' ? '' : 'development'),
   };
 }
 

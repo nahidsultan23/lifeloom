@@ -21,6 +21,7 @@ import {
   ApiPropertyOptional,
   ApiTags,
 } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
@@ -56,8 +57,8 @@ import {
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 export class PageDto {
-  @IsOptional() @IsInt() @Min(1) page = 1;
-  @IsOptional() @IsInt() @Min(1) @Max(100) limit = 20;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) limit = 20;
 }
 
 export class GoalDto {
