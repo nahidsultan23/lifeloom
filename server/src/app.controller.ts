@@ -1,7 +1,7 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
-import { Connection } from 'mongoose';
+import type { Connection } from 'mongoose';
 
 @ApiTags('health')
 @Controller()
